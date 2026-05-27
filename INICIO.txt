@@ -1,0 +1,125 @@
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                                                                           ║
+║     🛡️  ft_snowcrash - Curso de Ciberseguridad desde Cero  🛡️            ║
+║                                                                           ║
+║                    ✅ ESTRUCTURA DEL PROYECTO CREADA                      ║
+║                                                                           ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+📁 ARCHIVOS CREADOS:
+─────────────────────────────────────────────────────────────────────────────
+
+├── 📄 README.md                   ← ⭐ COMIENZA AQUÍ
+├── 📄 SETUP.md                    ← Instalación en Fedora
+├── 📄 CLAUDE.md                   ← Configuración del proyecto
+├── 📄 ESTRUCTURA-PROYECTO.md      ← Guía visual (detallada)
+├── 📄 INICIO.txt                  ← Este archivo (quickstart)
+│
+├── 📁 01-teoria/
+│   └── INDEX.md                   ← Índice de 8 lecciones
+│
+├── 📁 02-practicas/
+│   ├── INDEX.md                   ← Índice de 13 ejercicios
+│   ├── 📁 nivel_00/               ← 4 ejercicios básicos
+│   ├── 📁 nivel_01/               ← 6 ejercicios intermedios
+│   └── 📁 bonus/                  ← 3 desafíos avanzados
+│
+└── 📁 recursos/
+    └── README.md                  ← Índice de recursos
+
+
+🚀 PASOS SIGUIENTES:
+─────────────────────────────────────────────────────────────────────────────
+
+1️⃣  Abre README.md para entender el curso
+    → Contiene: descripción, estructura, FAQs
+
+2️⃣  Sigue las instrucciones en SETUP.md
+    → Contiene: instalación de herramientas en Fedora
+
+3️⃣  Luego dirígete a 01-teoria/INDEX.md
+    → Contiene: listado de todas las lecciones
+
+4️⃣  Después a 02-practicas/INDEX.md
+    → Contiene: listado de todos los ejercicios
+
+
+📚 ESTRUCTURA DEL CURSO:
+─────────────────────────────────────────────────────────────────────────────
+
+TEORÍA (01-teoria/):
+  • Lección 01: Introducción a Seguridad
+  • Lección 02: Binarios y Memoria
+  • Lección 03: C Fundamentals
+  • Lección 04: GDB (Debugger)
+  • Lección 05: Objdump y Assembly
+  • Lección 06: Buffer Overflow
+  • Lección 07: Format Strings
+  • Lección 08: Análisis y Síntesis
+
+PRÁCTICAS (02-practicas/):
+  Nivel 00 (Básico):
+    • Ejercicio 01: Mi primer binario
+    • Ejercicio 02: file y strings
+    • Ejercicio 03: Entendiendo memoria
+    • Ejercicio 04: Punteros en C
+
+  Nivel 01 (Intermedio):
+    • Ejercicio 01: GDB básico
+    • Ejercicio 02: Disassembly
+    • Ejercicio 03: Strace
+    • Ejercicio 04: Vulnerabilidades
+    • Ejercicio 05: Buffer Overflow
+    • Ejercicio 06: Format Strings
+
+  Bonus (Avanzado):
+    • Desafío 01: Binario Misterio
+    • Desafío 02: Protecciones Modernas
+    • Desafío 03: Cadena de Explotación
+
+
+⏱️  TIEMPO ESTIMADO:
+─────────────────────────────────────────────────────────────────────────────
+
+Teoría:      ~7.5 horas
+Prácticas:   ~10.5 horas
+TOTAL:       ~18 horas (depende de tu ritmo)
+
+
+💡 FILOSOFÍA DEL CURSO:
+─────────────────────────────────────────────────────────────────────────────
+
+✅ Progresivo:     De lo simple a lo complejo
+✅ Pedagógico:     Teoría + Práctica inmediata
+✅ Explícito:      Nada asumido "obvio"
+✅ Detallado:      Ejemplos completamente explicados
+✅ Práctico:       Todo probado en Fedora
+
+
+📖 ORDEN RECOMENDADO:
+─────────────────────────────────────────────────────────────────────────────
+
+1. README.md                    (15 min)
+2. SETUP.md                     (1 hora)
+3. 01-teoria/leccion_01.md      (cuando esté disponible)
+4. 02-practicas/nivel_00/       (ejercicios)
+5. 01-teoria/leccion_02.md
+6. ... continuar progresivamente
+
+
+🆘 ¿NECESITAS AYUDA?
+─────────────────────────────────────────────────────────────────────────────
+
+• Navegar:        Lee ESTRUCTURA-PROYECTO.md
+• Instalar:       Lee SETUP.md
+• Aprender:       Comienza en README.md
+• Ejercicios:     Ve a 02-practicas/INDEX.md
+
+
+✨ ¡ESTÁS LISTO PARA COMENZAR!
+─────────────────────────────────────────────────────────────────────────────
+
+Abre el archivo: README.md
+
+La aventura de la ciberseguridad te espera 🎯
+
