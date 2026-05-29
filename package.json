@@ -1,0 +1,26 @@
+{
+  "name": "snowcrash",
+  "version": "1.0.0",
+  "description": "Bienvenido. Este es un curso completo y progresivo sobre **ciberseguridad y explotación de binarios**, diseñado para estudiantes que comienzan desde nivel 0.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yavpar/SnowCrash.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/yavpar/SnowCrash/issues"
+  },
+  "homepage": "https://github.com/yavpar/SnowCrash#readme",
+  "devDependencies": {
+    "@commitlint/cli": "^21.0.2",
+    "@commitlint/config-conventional": "^21.0.2",
+    "husky": "^9.1.7"
+  }
+}
