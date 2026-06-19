@@ -31,6 +31,26 @@ Esta carpeta contiene materiales de referencia que complementan el curso de ft_s
   - Plataformas de práctica (HackTheBox, OverTheWire, etc.)
   - Videos, cursos y papers académicos
 
+### Proceso de Compilación y Ejecución (nuevos)
+- **[compilacion-proceso.md](compilacion-proceso.md)** - El proceso underground de GCC
+  - Qué hace cada etapa: preprocesador, compilador cc1, ensamblador as, linker ld
+  - Formato ELF: secciones .text, .data, .bss, .rodata, .plt, .got
+  - PLT/GOT y binding dinámico
+  - Cómo ver el resultado de cada etapa (gcc -E, gcc -S, gcc -c)
+
+- **[compilacion-ejemplo.md](compilacion-ejemplo.md)** - Ejemplo práctico paso a paso
+  - Programa con variable global, local, string literal y función
+  - Comandos reales para ver cada archivo intermedio (.i, .s, .o, ELF)
+  - Visualización de memoria con GDB y readelf
+  - Tabla de símbolos, relocations, secciones y mapa de proceso
+
+- **[ejecucion-kernel.md](ejecucion-kernel.md)** - Qué hace el kernel al ejecutar un binario
+  - fork()/execve() y verificación de magic number
+  - Mmap() de segmentos y cómo se implementa NX
+  - ld.so: carga dinámica y lazy binding en GOT
+  - Ciclo Fetch-Decode-Execute y page faults
+  - Terminación del proceso y syscall exit_group()
+
 ### Conceptos Avanzados (Hints para Proyectos Futuros)
 - **[hints-futuros.md](hints-futuros.md)** (~3,500 palabras) - Conceptos que volverán en proyectos posteriores
   - ROP chains y gadgets
@@ -54,9 +74,8 @@ Esta carpeta también puede contener scripts de Python u otros que generan ejerc
 
 ## 📊 Estadísticas de Contenido
 
-- **Total de archivos de recursos:** 6
-- **Total de palabras:** ~28,500
-- **Archivos completados:** 6/6 ✅
+- **Total de archivos de recursos:** 9
+- **Archivos completados:** 9/9 ✅
 
 ## 🎯 Cómo Usar Esta Carpeta
 
@@ -83,10 +102,15 @@ Esta carpeta también puede contener scripts de Python u otros que generan ejerc
 3. gdb-guia.md (cuando hagas debugging)
 4. objdump-guia.md (cuando analices binarios)
 
+**Para entender qué pasa realmente al compilar/ejecutar:**
+5. compilacion-proceso.md (teoría de las 4 etapas de GCC)
+6. compilacion-ejemplo.md (comandos reales para verlo)
+7. ejecucion-kernel.md (lo que hace el kernel y el CPU)
+
 **Opcional (después de Nivel 00):**
-5. referencias.md (si quieres aprender más)
-6. hints-futuros.md (si quieres saber qué viene)
+8. referencias.md (si quieres aprender más)
+9. hints-futuros.md (si quieres saber qué viene)
 
 ---
 
-Última actualización: Mayo 2026
+Última actualización: Junio 2026
